@@ -60,7 +60,7 @@ class Addic7ed(SubtitleDatabase.SubtitleDB):
 		super(Addic7ed, self).__init__(langs=None,revertlangs=LANGUAGES)
 		#http://www.addic7ed.com/serie/Smallville/9/11/Absolute_Justice
 		self.host = "http://www.addic7ed.com"
-		self.release_pattern = re.compile(" \nVersion (.+), ([0-9]+).([0-9])+ MBs")
+		self.release_pattern = re.compile("Version (.+), ([0-9]+).([0-9])+ MBs")
 		
 
 	def process(self, filepath, langs):
@@ -110,22 +110,20 @@ class Addic7ed(SubtitleDatabase.SubtitleDB):
 			logging.debug("[Addic7ed] Team from website: %s" %subteams)
 			logging.debug("[Addic7ed] Team from file: %s" %teams)
 			logging.debug("[Addic7ed] match ? %s" %subteams.issubset(teams))
+
 			langs_html = subs.findNext("td", {"class" : "language"})
 			lang = self.getLG(langs_html.contents[0].strip().replace('&nbsp;', ''))
 			#logging.debug("[Addic7ed] Language : %s - lang : %s" %(langs_html, lang))
 			
-			statusTD = langs_html.findNext("td")
-			status = statusTD.find("strong").string.strip()
+			statusTD = "".join(langs_html.findNext("td").findAll(text=True))
+			if statusTD.find("Completed") >= 0  and subteams.issubset(teams) and (not langs or lang in langs):
+				# take the last one (most updated if it exists)
+				#logging.debug("%s - match : %s - lang : %s" %(status == "Completed", subteams.issubset(teams), (not langs or lang in langs)))
+				links = langs_html.findNext("td").findNext("td").findAll("a")
+				link = "%s%s"%(self.host,links[len(links)-1]["href"])
 
-			# take the last one (most updated if it exists)
-			links = statusTD.findNext("td").findAll("a")
-			link = "%s%s"%(self.host,links[len(links)-1]["href"])
-			
-			#logging.debug("%s - match : %s - lang : %s" %(status == "Completed", subteams.issubset(teams), (not langs or lang in langs)))
-			if status == "Completed" and subteams.issubset(teams) and (not langs or lang in langs) :
 				result = {}
-				result["release"] = "%s.S%.2dE%.2d.%s" %(name.replace("_", ".").title(), int(season), int(episode), '.'.join(subteams)
-)
+				result["release"] = "%s.S%.2dE%.2d.%s" %(name.replace("_", ".").title(), int(season), int(episode), '.'.join(subteams))
 				result["lang"] = lang
 				result["link"] = link
 				result["page"] = searchurl
